@@ -1,0 +1,15 @@
+const test=require('node:test')
+const assert=require('node:assert/strict')
+const fs=require('node:fs')
+const {render}=require('../palette/render.cjs')
+const palette=require('../palette/default.json')
+test('dynamic palette reaches editor, graph, Canvas and Bases',()=>{
+ const css=render({...palette,accent:'#66aacc'})
+ assert.ok(!css.includes('{{'))
+ for(const role of ['--interactive-accent: #66aacc','--graph-node-focused: #66aacc','--canvas-background: rgba(','--bases-table-cell-background-active: rgba(','--bg1: rgba('])assert.ok(css.includes(role),role)
+})
+test('the packaged fallback uses exactly the same canonical template',()=>{
+ const css=fs.readFileSync('theme.css','utf8');assert.ok(css.endsWith(render(palette)))
+ const manifest=require('../manifest.json');assert.equal(manifest.name,'Anto426 Monet');assert.equal(manifest.minAppVersion,'1.13.0')
+})
+test('malformed palette fails before generating CSS',()=>assert.throws(()=>render({...palette,accent:'bad'}),/Invalid palette/))

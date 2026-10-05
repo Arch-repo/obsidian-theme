@@ -11,6 +11,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const sass = require('sass');
+const { render } = require('./palette/render.cjs');
 
 const SRC = path.join(__dirname, 'src');
 const SCSS_ENTRY = path.join(SRC, 'scss/index.scss');
@@ -47,8 +48,8 @@ function build() {
 	const pluginCompat = fs.readFileSync(PLUGIN_COMPAT, 'utf8');
 	const styleSettings = fs.readFileSync(STYLE_SETTINGS, 'utf8');
 
-	const themeCss = [license, expanded, pluginCompat, styleSettings].join('\n');
-	const minimalCss = [license, expanded, pluginCompat, styleSettings].join('\n');
+	const themeCss = [license, expanded, pluginCompat, styleSettings, render(require('./palette/default.json'))].join('\n');
+	const minimalCss = [license, expanded, pluginCompat, styleSettings, render(require('./palette/default.json'))].join('\n');
 
 	fs.writeFileSync(path.join(__dirname, 'theme.css'), themeCss);
 	fs.writeFileSync(path.join(__dirname, 'Minimal.css'), minimalCss);
@@ -67,7 +68,7 @@ function build() {
 }
 
 function safeBuild() {
-	try { build(); } catch (e) { console.error(e.message); }
+	try { build(); } catch (e) { console.error(e.message); if (!process.argv.includes('--watch')) process.exitCode = 1; }
 }
 
 loadEnv();
@@ -75,7 +76,7 @@ safeBuild();
 
 if (process.argv.includes('--watch')) {
 	const chokidar = require('chokidar');
-	const watcher = chokidar.watch(['src/**/*.scss', 'src/**/*.css'], {
+	const watcher = chokidar.watch('src', {
 		cwd: __dirname,
 		ignoreInitial: true,
 	});
@@ -85,6 +86,6 @@ if (process.argv.includes('--watch')) {
 		pending = true;
 		setTimeout(() => { pending = false; safeBuild(); }, 30);
 	};
-	watcher.on('all', trigger);
+	watcher.on('all', (_event, name) => { if (/\.(scss|css)$/.test(name)) trigger(); });
 	console.log('Watching src/**/*.{scss,css}...');
 }
